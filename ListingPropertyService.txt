@@ -1,4 +1,0 @@
- public async Task<ListingPropertyDto> GetListingProperty(string listingKey, int userId)
- {
-     return await _listingPropertyRepository.GetListingProperty(listingKey, userId);
- }
