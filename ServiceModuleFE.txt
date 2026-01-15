@@ -1,0 +1,37 @@
+import axios from "@/services/axios";
+import { Response } from '@/services/interfaces';
+import { AxiosResponse } from 'axios';
+
+interface Brochure {
+  id: string;
+  templateName: string;
+  templateTitle: string;
+  brochureId: string;
+  fileName: string;
+  htmlUrl: string;
+  digitalTemplate: boolean;
+}
+
+interface PropertyData {
+  id: string;
+  participantId: string;
+  fullStreetAddress: string;
+  userId: number;
+  propertyImage: string;
+  propertyBrochures: Brochure[];
+}
+
+export default function AmpService() {
+  const getMarketingTemplates = async (listing_key: string, userId: number): Promise<AxiosResponse<Response<PropertyData>>> => {
+    try {
+      const response = await axios.get<Response<PropertyData>>(`/marketingcenter/api/v1/listing-property?ListingKey=${listing_key}&userId=${userId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  return {
+    getMarketingTemplates,
+  }
+}

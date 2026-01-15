@@ -1,0 +1,168 @@
+
+import AmpService from '@/services/modules/MlsListing/Amp.module';
+import { FormattedMarketingTemplate, MarketingTemplate, PropertyBrochure, SubCategory } from '@/services/modules/MlsListing/interfaces';
+import SafeTokenService from '@/services/modules/SafeToken.module';
+import { toast } from 'react-toastify';
+import { create } from 'zustand';
+const ampService = AmpService();
+const safeToken = SafeTokenService();
+
+type MlsState = {
+  listingData: MarketingTemplate | null;
+  printTemplates: PropertyBrochure[];
+  digitalTemplates: PropertyBrochure[];
+  justListedTemplates: SubCategory;
+  openHouseTemplates: SubCategory;
+  token: string | null;
+  loading: boolean;
+}
+
+type MlsActions = {
+  getTemplates: (listing_key: string, userId: number, isCraftAndBauerTenant?: boolean) => Promise<void>,
+  getToken: () => Promise<void>,
+  reset: () => void,
+}
+
+const initialState: MlsState = {
+  listingData: null,
+  printTemplates: [],
+  digitalTemplates: [],
+  justListedTemplates: {},
+  openHouseTemplates: {},
+  token: null,
+  loading: false,
+}
+
+function formatListingData(listingData: MarketingTemplate, isCraftAndBauerTenant: boolean): FormattedMarketingTemplate {
+  const { id, participantId, fullStreetAddress, userId, propertyImage, propertyBrochures } = listingData;
+  const output: FormattedMarketingTemplate = {
+    id,
+    participantId,
+    fullStreetAddress,
+    userId,
+    propertyImage,
+    just_listed: {},
+    open_house: {},
+  };
+
+  propertyBrochures.forEach((brochure) => {
+    const { templateTitle, templateName } = brochure;
+
+    let mainCategory = '';
+    if (templateTitle.includes('Just Listed') || templateName.includes('just_listed')) {
+      mainCategory = 'just_listed';
+    } else if (templateTitle.includes('Open House') || templateName.includes('open_house')) {
+      mainCategory = 'open_house';
+    } else {
+      return;
+    }
+
+    const subCategory = extractSubCategory(templateTitle, mainCategory === 'just_listed' ? 'Just Listed' : 'Open House', isCraftAndBauerTenant);
+
+    if (!output[mainCategory][subCategory]) {
+      output[mainCategory][subCategory] = [];
+    }
+
+    output[mainCategory][subCategory].push(brochure);
+  });
+
+  return output;
+}
+
+function extractSubCategory(templateTitle: string, mainCategory: string, isCraftAndBauerTenant: boolean): string {
+  let remainingTitle = templateTitle.replace(mainCategory, '').trim();
+
+  remainingTitle = remainingTitle.replace(/[0-9x.\-]/g, '').trim();
+
+  const remainingTitleLower = remainingTitle.toLowerCase();
+
+  if (isCraftAndBauerTenant) {
+    const digitalKeywords = [
+      "cover_story",
+      "social feed",
+      "story slide",
+      "youtube",
+      "arrow",
+      "centered",
+      "new to market",
+      "green",
+      "framed",
+      "email"
+    ];
+
+    const printKeywords = [
+      "single agent",
+      "postcard (a)",
+      "version",
+      "sheet_c",
+    ];
+
+    if (digitalKeywords.some(keyword => remainingTitleLower.includes(keyword))) {
+      return "Digital";
+    }
+    if (printKeywords.some(keyword => remainingTitleLower.includes(keyword))) {
+      return "Print";
+    }
+  }
+
+  const subCategories = [
+    'Feedback Form',
+    'Welcome Sign',
+    'Sign In Sheet',
+    'Social Post',
+    'Social Story',
+    'Flyer',
+    'Postcard',
+  ];
+
+  if (remainingTitleLower.includes('qr postcard') || remainingTitleLower.includes('postcard')) {
+    return 'Postcard';
+  }
+  if (remainingTitleLower.includes('social post') || remainingTitleLower.includes('social story')) {
+    return 'Social Media';
+  }
+  for (const sub of subCategories) {
+    if (remainingTitleLower.includes(sub.toLowerCase())) {
+      return sub;
+    }
+  }
+
+  return remainingTitle;
+}
+
+export const useMyMlsListingStore = create<MlsState & MlsActions>((set) => ({
+  ...initialState,
+  getTemplates: async (listing_key: string, userId: number, isCraftAndBauerTenant = false) => {
+    set({ loading: true });
+    try {
+      const response = await ampService.getMarketingTemplates(listing_key, userId);
+      const listingData: MarketingTemplate = response.data.data;
+
+      const formattedData = formatListingData(listingData, isCraftAndBauerTenant);
+
+      set({
+        listingData,
+        justListedTemplates: formattedData.just_listed,
+        openHouseTemplates: formattedData.open_house,
+      });
+
+    } catch (error) {
+      toast.error('Error getting Your Marketing Templates. Please contact support.');
+    } finally {
+      set({ loading: false });
+    }
+  },
+  getToken: async () => {
+    try {
+      const uri = sessionStorage.getItem('token') || sessionStorage.getItem('token');
+      const tenantUid = localStorage.getItem('tenant_uid')
+      const response = await safeToken.getSafeToken(tenantUid, uri)
+      set({ token: encodeURIComponent(response.data.access_token) });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+  reset: () => {
+    set(initialState)
+  },
+}))

@@ -1,0 +1,39 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace BBMC.CoreService.Models.Entities;
+public class TblMlsListingProperty
+{
+    [BsonId]
+    [BsonElement("_id")]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; }
+
+    [BsonElement("user_id")]
+    [BsonIgnoreIfDefault]
+    public int? UserId { get; set; }
+
+    [BsonElement("participant_id")]
+    [BsonIgnoreIfDefault]
+    public string ParticipantId { get; set; }
+
+    [BsonElement("full_street_address")]
+    [BsonIgnoreIfDefault]
+    public string FullStreetAddress { get; set; }
+
+    [BsonElement("listing_key")]
+    [BsonIgnoreIfDefault]
+    public string ListingKey { get; set; }
+
+    [BsonElement("property_image")]
+    [BsonIgnoreIfDefault]
+    public string PropertyImage { get; set; }
+
+    [BsonElement("creation_date")]
+    [BsonIgnoreIfDefault]
+    public DateTime CreationDate { get; set; }
+
+    [BsonElement("updated_date")]
+    [BsonIgnoreIfDefault]
+    public DateTime UpdatedDate { get; set; }
+}

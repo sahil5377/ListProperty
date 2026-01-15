@@ -1,0 +1,32 @@
+export interface PropertyBrochure {
+  id: string;
+  templateName: string;
+  templateTitle: string;
+  brochureId: string;
+  fileName: string;
+  htmlUrl: string;
+  digitalTemplate: boolean;
+}
+
+export interface MarketingTemplate {
+  id: string;
+  participantId: string;
+  fullStreetAddress: string;
+  userId: number;
+  propertyImage: string;
+  propertyBrochures: PropertyBrochure[];
+}
+
+export interface SubCategory {
+  [subCategory: string]: PropertyBrochure[];
+}
+
+export interface FormattedMarketingTemplate {
+  id: string;
+  participantId: string;
+  fullStreetAddress: string;
+  userId: number;
+  propertyImage: string;
+  just_listed: SubCategory;
+  open_house: SubCategory;
+}
